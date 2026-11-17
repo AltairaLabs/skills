@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "docs-kit"
+version = "1.0.0"
+description = "Mechanical docs checks behind the docs-review skill: staleness, provenance, coverage, voice, feature register."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+authors = [{ name = "AltairaLabs" }]
+dependencies = []
+
+[project.optional-dependencies]
+# Element-level coverage (coverage.elements) and the feature register read YAML.
+yaml = ["pyyaml>=6"]
+
+[project.urls]
+Repository = "https://github.com/AltairaLabs/skills"
+
+[project.scripts]
+docs-kit = "docs_kit.cli:main"
+docs-stale = "docs_kit.stale:main"
+docs-stale-bundle = "docs_kit.bundle:main"
+docs-provenance = "docs_kit.provenance:main"
+docs-coverage = "docs_kit.coverage:main"
+docs-voice = "docs_kit.voice:main"
+docs-features = "docs_kit.features:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+docs_kit = ["data/*.txt"]

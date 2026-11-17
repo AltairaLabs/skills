@@ -1,0 +1,21 @@
+{
+  "name": "altairalabs",
+  "owner": {
+    "name": "AltairaLabs",
+    "url": "https://github.com/AltairaLabs"
+  },
+  "metadata": {
+    "description": "Claude Code plugins from AltairaLabs.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "docs-review",
+      "source": "./plugins/docs-review",
+      "description": "Review docs pages against a style guide and the code, record what each page was verified against, and keep pages true as the code changes.",
+      "version": "1.0.0",
+      "category": "documentation",
+      "keywords": ["docs", "diataxis", "review", "provenance", "staleness"]
+    }
+  ]
+}

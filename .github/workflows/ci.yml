@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ['*/v*']
+
+permissions:
+  contents: read
+
+jobs:
+  manifests:
+    name: Manifests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Every plugin is listed and every manifest parses
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          market = json.load(open(".claude-plugin/marketplace.json"))
+          listed = {p["name"]: p for p in market["plugins"]}
+          dirs = sorted(d for d in os.listdir("plugins") if os.path.isdir(os.path.join("plugins", d)))
+          bad = 0
+          for d in dirs:
+              m = json.load(open(f"plugins/{d}/.claude-plugin/plugin.json"))
+              if d not in listed:
+                  print(f"::error::plugins/{d} is not in marketplace.json"); bad = 1
+              elif listed[d].get("version") != m.get("version"):
+                  print(f"::error::{d}: marketplace version {listed[d].get('version')} != plugin.json {m.get('version')}"); bad = 1
+          for name, p in listed.items():
+              if p["source"] != f"./plugins/{name}":
+                  print(f"::error::{name}: source should be ./plugins/{name}"); bad = 1
+          sys.exit(bad)
+          PY
+
+  tools:
+    name: Tool tests (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Test every plugin tool
+        run: |
+          status=0
+          for tool in plugins/*/tool; do
+            [ -f "$tool/tests/run.sh" ] || continue
+            echo "::group::$tool"
+            venv="$RUNNER_TEMP/venv-$(basename "$(dirname "$tool")")"
+            uv venv -q "$venv"
+            extras=""
+            grep -q '^\[project.optional-dependencies\]' "$tool/pyproject.toml" && extras="$(python3 -c "import tomllib,sys; print(','.join(tomllib.load(open(sys.argv[1],'rb'))['project']['optional-dependencies']))" "$tool/pyproject.toml")"
+            uv pip install -q --python "$venv/bin/python" -e "$tool${extras:+[$extras]}"
+            env PATH="$venv/bin:$PATH" bash "$tool/tests/run.sh" || status=1
+            echo "::endgroup::"
+          done
+          exit $status
+      - name: Tag matches the plugin's version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+          plugin="${tag%%/v*}"; version="${tag#*/v}"
+          want=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['version'])" "plugins/$plugin/.claude-plugin/plugin.json")
+          [ "$want" = "$version" ] || { echo "::error::tag $tag but plugins/$plugin is $want"; exit 1; }
+          py="plugins/$plugin/tool/pyproject.toml"
+          if [ -f "$py" ]; then
+            have=$(python3 -c "import tomllib,sys; print(tomllib.load(open(sys.argv[1],'rb'))['project']['version'])" "$py")
+            [ "$have" = "$version" ] || { echo "::error::tag $tag but $py is $have"; exit 1; }
+          fi

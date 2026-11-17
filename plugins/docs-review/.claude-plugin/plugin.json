@@ -1,0 +1,13 @@
+{
+  "name": "docs-review",
+  "version": "1.0.0",
+  "description": "Review docs pages against a style guide and the code, record what each page was verified against, and keep pages true as the code changes.",
+  "author": {
+    "name": "AltairaLabs",
+    "url": "https://github.com/AltairaLabs"
+  },
+  "homepage": "https://github.com/AltairaLabs/skills/tree/main/plugins/docs-review",
+  "repository": "https://github.com/AltairaLabs/skills",
+  "license": "Apache-2.0",
+  "keywords": ["docs", "diataxis", "review", "provenance", "staleness"]
+}
