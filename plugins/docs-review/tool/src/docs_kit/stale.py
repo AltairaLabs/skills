@@ -15,7 +15,9 @@ Pages without a sidecar fall back to file level: any change is stale.
 
 Usage: docs-stale [--root <repo>] [--config <file>] [--base <ref>]
   default   compare each page's verified commit with the working tree
-  --base    PR mode: only changes between <ref> and HEAD count (CI uses HEAD^1)
+  --base    PR mode: only changes between <ref> and HEAD count (CI uses HEAD^1).
+            A verified commit missing from the checkout (shallow clone) is not
+            reported; the page is stale if the PR changed any file it cites.
 Always exits 0.
 """
 import os
@@ -66,7 +68,8 @@ def main(argv=None):
         if not commit or not sources:
             print(f"unverified {page}")
             continue
-        if not df.has_commit(root, commit):
+        known = df.has_commit(root, commit)
+        if not known and not base:
             print(f"unknown-commit {page}: {commit}")
             continue
         evidence = {}
@@ -80,6 +83,11 @@ def main(argv=None):
                 continue
             if not os.path.exists(os.path.join(root, src)):
                 print(f"missing {page}: {src}")
+                continue
+            if not known:
+                # PR mode, verified commit not in a shallow checkout: lines cannot
+                # be mapped from it, so a change to a cited file is enough.
+                hits.append(f"{src} (file changed)")
                 continue
             if base:
                 hs = df.hunks(root, base, "HEAD", src)

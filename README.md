@@ -29,7 +29,7 @@ package with console scripts. Releases are tagged per plugin as
 following the others:
 
 ```bash
-uvx --from "git+https://github.com/AltairaLabs/skills@docs-review/v1.0.0#subdirectory=plugins/docs-review/tool" docs-stale
+uvx --from "git+https://github.com/AltairaLabs/skills@docs-review/v1.0.1#subdirectory=plugins/docs-review/tool" docs-stale
 ```
 
 On GitHub Actions:
@@ -39,7 +39,7 @@ On GitHub Actions:
   with:
     fetch-depth: 0
 - uses: astral-sh/setup-uv@v6
-- run: uvx --from "git+https://github.com/AltairaLabs/skills@docs-review/v1.0.0#subdirectory=plugins/docs-review/tool" docs-voice
+- run: uvx --from "git+https://github.com/AltairaLabs/skills@docs-review/v1.0.1#subdirectory=plugins/docs-review/tool" docs-voice
 ```
 
 Each repository configures the tool with its own config file (for
