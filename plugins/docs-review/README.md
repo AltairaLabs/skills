@@ -121,13 +121,17 @@ Pin a release tag and run the command with `uvx`; nothing is installed into
 the repository:
 
 ```bash
-uvx --from "git+https://github.com/AltairaLabs/skills@docs-review/v1.0.0#subdirectory=plugins/docs-review/tool" docs-stale --base HEAD^1
-uvx --from "git+https://github.com/AltairaLabs/skills@docs-review/v1.0.0#subdirectory=plugins/docs-review/tool" docs-voice
-uvx --with pyyaml --from "git+https://github.com/AltairaLabs/skills@docs-review/v1.0.0#subdirectory=plugins/docs-review/tool" docs-coverage
+uvx --from "git+https://github.com/AltairaLabs/skills@docs-review/v1.0.1#subdirectory=plugins/docs-review/tool" docs-stale --base HEAD^1
+uvx --from "git+https://github.com/AltairaLabs/skills@docs-review/v1.0.1#subdirectory=plugins/docs-review/tool" docs-voice
+uvx --with pyyaml --from "git+https://github.com/AltairaLabs/skills@docs-review/v1.0.1#subdirectory=plugins/docs-review/tool" docs-coverage
 ```
 
-On GitHub Actions, `astral-sh/setup-uv` provides `uvx`. Check out with
-`fetch-depth: 0`: staleness diffs against each page's recorded commit.
+On GitHub Actions, `astral-sh/setup-uv` provides `uvx`. A full staleness
+sweep diffs against each page's recorded commit, so check out with
+`fetch-depth: 0`. `docs-stale --base HEAD^1` also works in a shallow checkout
+(`fetch-depth: 2`): a page whose recorded commit was not fetched is checked at
+file level, stale when the change touches any file it cites, and is not
+reported as `unknown-commit`.
 
 Every command takes `--root <repo>` (default: the git toplevel of the current
 directory) and `--config <file>` (default: `<root>/docs-kit.toml`). The output
@@ -140,3 +144,12 @@ version.
 uv venv && uv pip install -e 'tool[yaml]'
 env PATH="$PWD/.venv/bin:$PATH" bash tool/tests/run.sh
 ```
+
+## Changelog
+
+- **1.0.1**: `docs-stale --base` no longer reports `unknown-commit` for a page
+  whose verified commit is missing from a shallow checkout. It falls back to
+  file level: the page is stale when the change touches a file it cites.
+  A cited file the change renames is reported `missing`, and a `--base` ref
+  that is not in the checkout is reported on stderr.
+- **1.0.0**: first release.

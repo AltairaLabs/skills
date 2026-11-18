@@ -108,6 +108,41 @@ git -C "$d" "${G[@]}" add -A && git -C "$d" "${G[@]}" commit -q -m page; b=$(git
 edit_line "$d/src/x.go" 25; git -C "$d" "${G[@]}" commit -qam pr
 run_case "PR mode ignores unrelated hunks" "$d" EMPTY --base "$b"
 
+# PR mode, verified commit not in the checkout: file level, never unknown-commit.
+read -r d c <<<"$(repo)"; X=0123456789abcdef0123456789abcdef01234567
+page "$d" a "$X" src/x.go src/x.go:2
+page "$d" b "$X" api/foo.go api/foo.go:2
+git -C "$d" "${G[@]}" add -A && git -C "$d" "${G[@]}" commit -q -m page; b=$(git -C "$d" rev-parse HEAD)
+edit_line "$d/src/x.go" 25; git -C "$d" "${G[@]}" commit -qam pr
+run_case "PR mode, missing commit: page citing a changed file is stale" "$d" "^stale $P/a.md: src/x.go \(file changed\)$" --base "$b"
+out=$(docs-stale --root "$d" --base "$b" 2>&1)
+if grep -qE "unknown-commit|$P/b.md" <<<"$out"; then echo "FAIL - PR mode, missing commit: no unknown-commit, unrelated page spared"; echo "$out" | sed 's/^/       /'; FAILURES=1
+else echo "ok   - PR mode, missing commit: no unknown-commit, unrelated page spared"; fi
+
+# PR mode, missing commit: a cited file the PR renames is missing.
+read -r d c <<<"$(repo)"; page "$d" a "$X" src/x.go src/x.go:2
+git -C "$d" "${G[@]}" add -A && git -C "$d" "${G[@]}" commit -q -m page; b=$(git -C "$d" rev-parse HEAD)
+git -C "$d" mv src/x.go src/y.go; git -C "$d" "${G[@]}" commit -qm pr
+run_case "PR mode, missing commit: a renamed cited file is missing" "$d" "^missing $P/a.md: src/x.go$" --base "$b"
+
+# PR mode with a base ref not in the checkout says so on stderr.
+read -r d c <<<"$(repo)"; page "$d" a "$c" src/x.go src/x.go:2
+err=$(docs-stale --root "$d" --base "$X" 2>&1 >/dev/null)
+grep -q "is not in the checkout" <<<"$err" && echo "ok   - unknown --base is reported on stderr" || { echo "FAIL - unknown --base is reported on stderr"; FAILURES=1; }
+
+# The same in a real depth-2 clone, as CI checks out: verified at c1, two commits later.
+read -r d c <<<"$(repo)"; page "$d" a "$c" src/x.go src/x.go:2; page "$d" b "$c" api/foo.go api/foo.go:2
+git -C "$d" "${G[@]}" add -A && git -C "$d" "${G[@]}" commit -q -m page
+edit_line "$d/api/foo.go" 30; git -C "$d" "${G[@]}" commit -qam c3
+edit_line "$d/src/x.go" 25; git -C "$d" "${G[@]}" commit -qam pr
+s=$(mktemp -d); git clone -q --depth 2 "file://$d" "$s/c"
+out=$(docs-stale --root "$s/c" --base HEAD^1 2>&1)
+if grep -qE "^stale $P/a.md: src/x.go \(file changed\)$" <<<"$out" && [ "$(wc -l <<<"$out" | tr -d ' ')" = 1 ]; then
+	echo "ok   - shallow clone: only the page citing the PR's file is reported"
+else echo "FAIL - shallow clone: only the page citing the PR's file is reported"; echo "$out" | sed 's/^/       /'; FAILURES=1; fi
+out=$(docs-stale --root "$s/c" 2>&1)
+grep -qE "^unknown-commit $P/a.md" <<<"$out" && echo "ok   - shallow clone without --base still reports unknown-commit" || { echo "FAIL - shallow clone without --base still reports unknown-commit"; echo "$out" | sed 's/^/       /'; FAILURES=1; }
+
 # --root defaults to the git toplevel of the working directory.
 read -r d c <<<"$(repo)"; page "$d" a "$c" src/x.go src/x.go:2; edit_line "$d/src/x.go" 3
 out=$(cd "$d/src" && docs-stale 2>&1)

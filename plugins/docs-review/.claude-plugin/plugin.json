@@ -1,6 +1,6 @@
 {
   "name": "docs-review",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Review docs pages against a style guide and the code, record what each page was verified against, and keep pages true as the code changes.",
   "author": {
     "name": "AltairaLabs",
