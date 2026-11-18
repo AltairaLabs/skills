@@ -119,6 +119,17 @@ out=$(docs-stale --root "$d" --base "$b" 2>&1)
 if grep -qE "unknown-commit|$P/b.md" <<<"$out"; then echo "FAIL - PR mode, missing commit: no unknown-commit, unrelated page spared"; echo "$out" | sed 's/^/       /'; FAILURES=1
 else echo "ok   - PR mode, missing commit: no unknown-commit, unrelated page spared"; fi
 
+# PR mode, missing commit: a cited file the PR renames is missing.
+read -r d c <<<"$(repo)"; page "$d" a "$X" src/x.go src/x.go:2
+git -C "$d" "${G[@]}" add -A && git -C "$d" "${G[@]}" commit -q -m page; b=$(git -C "$d" rev-parse HEAD)
+git -C "$d" mv src/x.go src/y.go; git -C "$d" "${G[@]}" commit -qm pr
+run_case "PR mode, missing commit: a renamed cited file is missing" "$d" "^missing $P/a.md: src/x.go$" --base "$b"
+
+# PR mode with a base ref not in the checkout says so on stderr.
+read -r d c <<<"$(repo)"; page "$d" a "$c" src/x.go src/x.go:2
+err=$(docs-stale --root "$d" --base "$X" 2>&1 >/dev/null)
+grep -q "is not in the checkout" <<<"$err" && echo "ok   - unknown --base is reported on stderr" || { echo "FAIL - unknown --base is reported on stderr"; FAILURES=1; }
+
 # The same in a real depth-2 clone, as CI checks out: verified at c1, two commits later.
 read -r d c <<<"$(repo)"; page "$d" a "$c" src/x.go src/x.go:2; page "$d" b "$c" api/foo.go api/foo.go:2
 git -C "$d" "${G[@]}" add -A && git -C "$d" "${G[@]}" commit -q -m page

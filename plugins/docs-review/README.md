@@ -150,4 +150,6 @@ env PATH="$PWD/.venv/bin:$PATH" bash tool/tests/run.sh
 - **1.0.1**: `docs-stale --base` no longer reports `unknown-commit` for a page
   whose verified commit is missing from a shallow checkout. It falls back to
   file level: the page is stale when the change touches a file it cites.
+  A cited file the change renames is reported `missing`, and a `--base` ref
+  that is not in the checkout is reported on stderr.
 - **1.0.0**: first release.

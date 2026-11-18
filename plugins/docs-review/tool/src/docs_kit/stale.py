@@ -61,7 +61,11 @@ def main(argv=None):
 
     changed_in_pr = None
     if base:
-        changed_in_pr = set(df.git(root, "diff", "--name-only", base, "HEAD", check=False).split())
+        if not df.has_commit(root, base):
+            print(f"docs-stale: --base {base} is not in the checkout; nothing compared", file=sys.stderr)
+        # --no-renames: a renamed cited file shows as deleted, so it is reported missing.
+        changed_in_pr = set(df.git(root, "diff", "--no-renames", "--name-only", base, "HEAD",
+                                   check=False).split())
 
     for page in pages:
         commit, sources, side = records[page]
